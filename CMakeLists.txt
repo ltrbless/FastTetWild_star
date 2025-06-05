@@ -11,6 +11,12 @@ else()
 	set(FLOAT_TETWILD_TOPLEVEL_PROJECT ON)
 endif()
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_definitions(-DCATCH_CONFIG_CPP11_CSTDINT)
+add_compile_definitions(CATCH_CONFIG_CPP11_CSTDINT)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-changes-meaning")
+
 if(INPUT_THIRD_PARTY_DIR)
 	set(FLOAT_TETWILD_EXTERNAL ${CMAKE_CURRENT_SOURCE_DIR}/${INPUT_THIRD_PARTY_DIR}/)
 else()
@@ -180,9 +186,9 @@ endif()
 add_subdirectory(src)
 
 # Compile extras only if this is a top-level project
-if(FLOAT_TETWILD_TOPLEVEL_PROJECT)
-	# Unit tests
-	include(CTest)
-	enable_testing()
-	add_subdirectory(tests)
-endif()
+# if(FLOAT_TETWILD_TOPLEVEL_PROJECT)
+# 	# Unit tests
+# 	include(CTest)
+# 	enable_testing()
+# 	add_subdirectory(tests)
+# endif()

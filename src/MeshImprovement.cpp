@@ -160,6 +160,9 @@ void floatTetWild::optimization(const std::vector<Vector3> &input_vertices, cons
 
         Scalar max_energy, avg_energy;
         get_max_avg_energy(mesh, max_energy, avg_energy);
+        if (mesh.is_input_all_inserted)
+            break;
+
         if (max_energy <= mesh.params.stop_energy && mesh.is_input_all_inserted)
             break;
 
@@ -1433,7 +1436,8 @@ void floatTetWild::get_tracked_surface(Mesh& mesh, Eigen::Matrix<Scalar, Eigen::
         F_sf.resize(0, 3);
         bfs_orient(F, F_sf, _1);
     }
-    igl::writeSTL(mesh.params.output_path + "_" + mesh.params.postfix + "_tracked_surface.stl", V_sf, F_sf);
+    std::cout << "Output vertex : " << V_sf.rows() << " facet : " << F_sf.rows() << "\n";
+    igl::writeOBJ(mesh.params.output_path + "_result.obj", V_sf, F_sf);
 }
 
 void floatTetWild::correct_tracked_surface_orientation(Mesh &mesh, AABBWrapper& tree){

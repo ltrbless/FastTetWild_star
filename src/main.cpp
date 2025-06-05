@@ -24,6 +24,7 @@
 #include <floattetwild/Mesh.hpp>
 #include <floattetwild/MeshIO.hpp>
 
+#include <chrono>
 #include <Eigen/Dense>
 #include <floattetwild/Logger.hpp>
 
@@ -408,6 +409,9 @@ int main(int argc, char** argv)
             std::fill(input_tags.begin(), input_tags.end(), 0);
         }
     }
+    
+    auto time_start = std::chrono::high_resolution_clock::now();
+
     AABBWrapper tree(sf_mesh);
     if (!params.init(tree.get_sf_diag())) {
         return EXIT_FAILURE;
@@ -621,22 +625,28 @@ int main(int argc, char** argv)
             colors[i] = mesh.tets[i].quality;
         }
     }
+    auto   time_end = std::chrono::high_resolution_clock::now();
+    auto   duration = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_start);
+    double seconds  = duration.count() / 1000.0;  // 转换为秒
+
+    // 设置输出格式为固定小数点后3位
+    std::cout << "Time taken: " << seconds << " seconds" << std::endl;
     // fortest
-    MeshIO::write_mesh(output_mesh_name, mesh, false, colors, !nobinary, !csg_file.empty());
-    igl::write_triangle_mesh(params.output_path + "_" + params.postfix + "_sf.obj", V_sf, F_sf);
+    // MeshIO::write_mesh(output_mesh_name, mesh, false, colors, !nobinary, !csg_file.empty());
+    // igl::write_triangle_mesh(params.output_path + "_" + params.postfix + "_sf.obj", V_sf, F_sf);
     //    MeshIO::write_surface_mesh(params.output_path + "_" + params.postfix + "_sf.obj", mesh,
     //    false);
 
-    std::ofstream fout(params.log_path + "_" + params.postfix + ".csv");
-    if (fout.good())
-        fout << stats();
-    fout.close();
+    // std::ofstream fout(params.log_path + "_" + params.postfix + ".csv");
+    // if (fout.good())
+    //     fout << stats();
+    // fout.close();
 
-    if (!params.envelope_log.empty()) {
-        std::ofstream fout(params.envelope_log);
-        fout << envelope_log_csv;
-        fout.close();
-    }
+    // if (!params.envelope_log.empty()) {
+    //     std::ofstream fout(params.envelope_log);
+    //     fout << envelope_log_csv;
+    //     fout.close();
+    // }
 
     return EXIT_SUCCESS;
 }
