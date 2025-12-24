@@ -210,7 +210,8 @@ int main(int argc, char** argv)
     command_line.add_option("--postfix", params.postfix, "(for debugging usage only)");
     command_line.add_option("--log", params.log_path, "Log info to given file.");
     command_line.add_option("--level", params.log_level, "Log level (0 = most verbose, 6 = off).");
-
+    command_line.add_option("--output-sur-vol", params.output_sur_volume, "Output surface + volume filename");
+    command_line.add_flag("--round", params.round, "Round the output vertex positions.");
     command_line.add_flag("-q,--is-quiet", params.is_quiet, "Mute console output. (optional)");
     command_line.add_flag("--skip-simplify", skip_simplify, "skip preprocessing.");
     command_line.add_flag("--no-binary", nobinary, "export meshes as ascii");
@@ -537,6 +538,22 @@ int main(int argc, char** argv)
     correct_tracked_surface_orientation(mesh, tree);
     logger().info("correct_tracked_surface_orientation done");
 
+    if(params.output_sur_volume !=""){
+        std::cout << "Writing surface and volume to " << params.output_sur_volume << std::endl;
+        std::vector<std::array<double, 3>> points_out;
+        std::vector<std::array<int, 3>>    tris_out;
+        std::vector<std::array<int, 4>>    tets_out;
+        get_tris_and_tets(mesh, points_out, tris_out, tets_out);
+        std::cout << "Final Points: " << points_out.size() << "\n";
+        std::cout << "Final Tris: " << tris_out.size() << "\n";
+        std::cout << "Final Tets: " << tets_out.size() << "\n";
+        MeshIO::writeSurTetVTK(
+          params.output_sur_volume, points_out, tris_out, tets_out);
+    }
+
+
+
+
     if (export_raw) {
         Eigen::Matrix<Scalar, Eigen::Dynamic, 3> Vt;
         Eigen::Matrix<int, Eigen::Dynamic, 3>    Ft;
@@ -630,7 +647,7 @@ int main(int argc, char** argv)
     double seconds  = duration.count() / 1000.0;  // 转换为秒
 
     // 设置输出格式为固定小数点后3位
-    std::cout << "Time taken: " << seconds << " seconds" << std::endl;
+    std::cout << "All Time: " << seconds << " seconds" << std::endl;
     // fortest
     // MeshIO::write_mesh(output_mesh_name, mesh, false, colors, !nobinary, !csg_file.empty());
     // igl::write_triangle_mesh(params.output_path + "_" + params.postfix + "_sf.obj", V_sf, F_sf);

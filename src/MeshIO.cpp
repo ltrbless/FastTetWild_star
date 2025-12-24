@@ -22,7 +22,11 @@
 #include <geogram/mesh/mesh_reorder.h>
 #include <geogram/mesh/mesh_repair.h>
 #include <geogram/numerics/predicates.h>
-
+#include <string>
+#include <vector>
+#include <array>
+#include <cstdio>
+#include <iostream>
 #include <numeric>
 
 namespace floatTetWild {
@@ -581,4 +585,115 @@ void MeshIO::extract_volume_mesh(const Mesh&      mesh,
         floatTetWild::extract_volume_mesh(mesh, skip_tet, skip_vertex, V, T);
     }
 }
+
+
+
+void MeshIO::writeTriVTK(const std::string& filename,
+                 const std::vector<std::array<double, 3>>& points,
+                 const std::vector<std::array<int, 3>>& tris) {
+    FILE* file = fopen(filename.c_str(), "w");
+    if (!file) {
+        std::cerr << "Unable to open file for writing: " << filename << std::endl;
+        return;
+    }
+
+    // VTK文件头
+    fprintf(file, "# vtk DataFile Version 3.0\n");
+    fprintf(file, "TriMesh\n");
+    fprintf(file, "ASCII\n");
+    fprintf(file, "DATASET UNSTRUCTURED_GRID\n");
+
+    // 写入点
+    fprintf(file, "POINTS %zu double\n", points.size());
+    for (const auto& vertex : points) {
+        fprintf(file, "%.17g %.17g %.17g\n", vertex[0], vertex[1], vertex[2]);
+    }
+
+    // 写入单元格
+    fprintf(file, "CELLS %zu %zu\n", tris.size(), tris.size() * 4);
+    for (const auto& tri : tris) {
+        fprintf(file, "3 %d %d %d\n", tri[0], tri[1], tri[2]);
+    }
+
+    // 写入单元格类型
+    fprintf(file, "CELL_TYPES %zu\n", tris.size());
+    for (size_t i = 0; i < tris.size(); ++i) {
+        fprintf(file, "5\n");  // VTK_TRIANGLE
+    }
+
+    fclose(file);
+}
+
+
+void MeshIO::writeTetVTK(const std::string& filename,
+                 const std::vector<std::array<double, 3>>& points,
+                 const std::vector<std::array<int, 4>>& tets) {
+    FILE* file = fopen(filename.c_str(), "w");
+    if (!file) {
+        std::cerr << "Unable to open file for writing: " << filename << std::endl;
+        return;
+    }
+
+    const size_t num_vertices = points.size();
+    const size_t num_tets = tets.size();
+
+    // VTK文件头
+    fprintf(file, "# vtk DataFile Version 3.0\n");
+    fprintf(file, "Tetrahedral mesh\n");
+    fprintf(file, "ASCII\n");
+    fprintf(file, "DATASET UNSTRUCTURED_GRID\n");
+
+    // 写入点
+    fprintf(file, "POINTS %zu double\n", num_vertices);
+    for (const auto& vertex : points) {
+        fprintf(file, "%.17g %.17g %.17g\n", vertex[0], vertex[1], vertex[2]);
+    }
+
+    // 写入四面体
+    fprintf(file, "\nCELLS %zu %zu\n", num_tets, num_tets * 5);
+    for (const auto& tet : tets) {
+        fprintf(file, "4 %d %d %d %d\n", tet[0], tet[1], tet[2], tet[3]);
+    }
+
+    // 写入单元格类型
+    fprintf(file, "\nCELL_TYPES %zu\n", num_tets);
+    for (size_t i = 0; i < num_tets; ++i) {
+        fprintf(file, "10\n");  // VTK_TETRA
+    }
+
+    fclose(file);
+}
+
+
+void MeshIO::writeSurTetVTK(const std::string& filename,
+                    const std::vector<std::array<double, 3>>& points_out,
+                    const std::vector<std::array<int, 3>>& tris_out,
+                    const std::vector<std::array<int, 4>>& tets_out) {
+    // 解析文件名
+    size_t dot_pos = filename.find_last_of('.');
+    std::string base_name;
+    std::string extension;
+
+    if (dot_pos != std::string::npos) {
+        base_name = filename.substr(0, dot_pos);
+        extension = filename.substr(dot_pos);
+    } else {
+        base_name = filename;
+        extension = ".vtk";
+    }
+
+    std::string tri_filename = base_name + "_tri" + extension;
+    std::string tet_filename = base_name + "_tet" + extension;
+
+    // 写入三角形网格
+    if (!tris_out.empty()) {
+        writeTriVTK(tri_filename, points_out, tris_out);
+    }
+
+    // 写入四面体网格
+    if (!tets_out.empty()) {
+        writeTetVTK(tet_filename, points_out, tets_out);
+    }
+}
+
 }  // namespace floatTetWild

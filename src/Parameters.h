@@ -24,6 +24,7 @@ namespace floatTetWild {
         std::string output_path = "";
         std::string tag_path = "";
         std::string postfix = "";
+        std::string output_sur_volume = "";
 
         std::string envelope_log = "";
         std::string envelope_log_csv = "";
@@ -40,6 +41,7 @@ namespace floatTetWild {
         bool use_general_wn = false;
         bool use_input_for_wn = false;
         bool coarsen = false;
+        bool round = false;
 
         bool apply_sizing_field = false;
         Eigen::VectorXd V_sizing_field;

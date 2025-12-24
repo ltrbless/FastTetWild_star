@@ -27,6 +27,10 @@ namespace floatTetWild {
 
     void correct_tracked_surface_orientation(Mesh &mesh, AABBWrapper& tree);
     void get_tracked_surface(Mesh& mesh, Eigen::Matrix<Scalar, Eigen::Dynamic, 3> &V, Eigen::Matrix<int, Eigen::Dynamic, 3> &F, int c_id = 0);
+    void get_tris_and_tets(Mesh&                               mesh,
+                           std::vector<std::array<double, 3>>& points_out,
+                           std::vector<std::array<int, 3>>&    tris_out,
+                           std::vector<std::array<int, 4>>&    tets_out);
     void boolean_operation(Mesh& mesh, int op);
     void boolean_operation(Mesh& mesh, const json& csg_tree_with_ids, const std::vector<std::string> &meshes);
     void boolean_operation(Mesh& mesh, const json &csg_tree_with_ids, const std::vector<Eigen::VectorXd> &w);

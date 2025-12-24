@@ -29,5 +29,18 @@ namespace floatTetWild
 		static void write_surface_mesh(const std::string &path, const Mesh &mesh, const bool only_interior=true);
 
 		static void extract_volume_mesh(const Mesh &mesh, MatrixXs &V, Eigen::MatrixXi &T, bool only_interior = true);
-	};
+
+    static void writeTriVTK(const std::string&                        filename,
+                            const std::vector<std::array<double, 3>>& points,
+                            const std::vector<std::array<int, 3>>&    tris);
+
+    static void writeTetVTK(const std::string&                        filename,
+                            const std::vector<std::array<double, 3>>& points,
+                            const std::vector<std::array<int, 4>>&    tets);
+
+    static void writeSurTetVTK(const std::string&                        filename,
+                               const std::vector<std::array<double, 3>>& points_out,
+                               const std::vector<std::array<int, 3>>&    tris_out,
+                               const std::vector<std::array<int, 4>>&    tets_out);
+  };
 }

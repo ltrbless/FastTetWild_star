@@ -7,7 +7,7 @@
 //
 
 #include <floattetwild/MeshImprovement.h>
-
+#include <floattetwild/Predicates.hpp>
 #include <floattetwild/LocalOperations.h>
 #include <floattetwild/EdgeSplitting.h>
 #include <floattetwild/EdgeCollapsing.h>
@@ -29,7 +29,7 @@
 
 #include <floattetwild/MshLoader.h>
 #include <geogram/mesh/mesh_AABB.h>
-
+#include <iostream>
 //#define USE_FWN true
 
 void floatTetWild::init(Mesh &mesh, AABBWrapper& tree) {
@@ -160,7 +160,7 @@ void floatTetWild::optimization(const std::vector<Vector3> &input_vertices, cons
 
         Scalar max_energy, avg_energy;
         get_max_avg_energy(mesh, max_energy, avg_energy);
-        if (mesh.is_input_all_inserted)
+        if (mesh.is_input_all_inserted && mesh.params.round)
             break;
 
         if (max_energy <= mesh.params.stop_energy && mesh.is_input_all_inserted)
@@ -1389,6 +1389,84 @@ void floatTetWild::apply_coarsening(Mesh& mesh, AABBWrapper& tree) {
 #include <igl/unique_rows.h>
 #include <igl/remove_duplicate_vertices.h>
 #include <floattetwild/TriangleInsertion.h>
+
+void floatTetWild::get_tris_and_tets(
+    Mesh& mesh, 
+    std::vector<std::array<double, 3>>& points_out, 
+    std::vector<std::array<int, 3>>& tris_out, 
+    std::vector<std::array<int, 4>>& tets_out) 
+{
+    auto& tet_vertices = mesh.tet_vertices;
+
+    points_out.clear();
+    tris_out.clear();
+    tets_out.clear();
+    
+    // 建立旧索引到新索引的映射
+    std::vector<int> old_to_new(tet_vertices.size(), -1);
+    int new_idx = 0;
+    
+    for (int i = 0; i < tet_vertices.size(); ++i) {
+        if (tet_vertices[i].is_removed)
+            continue;
+        old_to_new[i] = new_idx++;
+        points_out.push_back({tet_vertices[i].pos[0], tet_vertices[i].pos[1], tet_vertices[i].pos[2]});
+    }
+
+    for (auto& t : mesh.tets) {
+        if (t.is_removed)
+            continue;
+        
+        // 将旧索引转换为新索引
+        int v0 = old_to_new[t[0]];
+        int v1 = old_to_new[t[1]];
+        int v2 = old_to_new[t[2]];
+        int v3 = old_to_new[t[3]];
+        
+        // 检查所有顶点索引是否有效
+        if (v0 < 0 || v1 < 0 || v2 < 0 || v3 < 0) {
+            std::cout << "Error: tet references removed vertex!" << std::endl;
+            throw std::runtime_error("tet references removed vertex");
+        }
+        
+        tets_out.push_back({v0, v1, v2, v3});
+        
+        for (int j = 0; j < 4; j++) {
+            if (t.is_surface_fs[j] <= 0) {
+                int tv1 = old_to_new[t[mod4(j + 1)]];
+                int tv2 = old_to_new[t[mod4(j + 2)]];
+                int tv3 = old_to_new[t[mod4(j + 3)]];
+                tris_out.push_back({tv1, tv2, tv3});
+            }
+        }
+    }
+
+    // 检查方向并修正
+    for (int i = 0; i < tets_out.size(); ++i) {
+        // 使用 points_out 中的新坐标进行方向检查
+        std::array<double, 3>& p0 = points_out[tets_out[i][0]];
+        std::array<double, 3>& p1 = points_out[tets_out[i][1]];
+        std::array<double, 3>& p2 = points_out[tets_out[i][2]];
+        std::array<double, 3>& p3 = points_out[tets_out[i][3]];
+        
+        // 需要将 std::array<double, 3> 转换为 Predicates 需要的类型
+        // 假设 Predicates::orient_3d 可以接受 Vector3 或类似类型
+        Vector3 pos0(p0[0], p0[1], p0[2]);
+        Vector3 pos1(p1[0], p1[1], p1[2]);
+        Vector3 pos2(p2[0], p2[1], p2[2]);
+        Vector3 pos3(p3[0], p3[1], p3[2]);
+        
+        double ori = Predicates::orient_3d(pos0, pos1, pos2, pos3);
+        if (ori != Predicates::ORI_POSITIVE) {
+            std::cout << "Error: get_tris_and_tets negative orientation!" << std::endl;
+            throw std::runtime_error("get_tris_and_tets negative orientation");
+        }
+        std::swap(tets_out[i][0], tets_out[i][1]);
+    }
+}
+
+
+
 void floatTetWild::get_tracked_surface(Mesh& mesh, Eigen::Matrix<Scalar, Eigen::Dynamic, 3> &V_sf, Eigen::Matrix<int, Eigen::Dynamic, 3> &F_sf, int c_id) {
 #define SF_CONDITION t.is_surface_fs[j]<=0&&t.surface_tags[j]==c_id
 
@@ -1436,8 +1514,8 @@ void floatTetWild::get_tracked_surface(Mesh& mesh, Eigen::Matrix<Scalar, Eigen::
         F_sf.resize(0, 3);
         bfs_orient(F, F_sf, _1);
     }
-    std::cout << "Output vertex : " << V_sf.rows() << " facet : " << F_sf.rows() << "\n";
-    igl::writeOBJ(mesh.params.output_path + "_result.obj", V_sf, F_sf);
+    // std::cout << "Output vertex : " << V_sf.rows() << " facet : " << F_sf.rows() << "\n";
+    // igl::writeOBJ(mesh.params.output_path + "_result.obj", V_sf, F_sf);
 }
 
 void floatTetWild::correct_tracked_surface_orientation(Mesh &mesh, AABBWrapper& tree){
