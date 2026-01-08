@@ -43,6 +43,32 @@
 
 using namespace floatTetWild;
 using namespace Eigen;
+#include <fstream>
+#include <string>
+
+#ifdef __APPLE__
+    #include <mach/mach.h>
+    #include <sys/resource.h>
+#endif
+
+double getPeakMemoryMB() {
+#ifdef __APPLE__
+    // macOS: 使用 getrusage
+    struct rusage usage;
+    getrusage(RUSAGE_SELF, &usage);
+    return usage.ru_maxrss / (1024.0 * 1024.0);  // bytes -> MB
+#else
+    // Linux: 读取 /proc/self/status
+    std::ifstream file("/proc/self/status");
+    std::string line;
+    while (std::getline(file, line)) {
+        if (line.rfind("VmHWM:", 0) == 0) {
+            return std::stol(line.substr(6)) / 1024.0;  // KB -> MB
+        }
+    }
+    return 0.0;
+#endif
+}
 
 class GeoLoggerForward : public GEO::LoggerClient
 {
@@ -647,6 +673,8 @@ int main(int argc, char** argv)
     double seconds  = duration.count() / 1000.0;  // 转换为秒
 
     // 设置输出格式为固定小数点后3位
+    double peakMem = getPeakMemoryMB();
+    std::cout << "Peak Memory: " << peakMem << " MB" << std::endl;
     std::cout << "All Time: " << seconds << " seconds" << std::endl;
     // fortest
     // MeshIO::write_mesh(output_mesh_name, mesh, false, colors, !nobinary, !csg_file.empty());
